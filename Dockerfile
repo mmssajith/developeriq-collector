@@ -3,6 +3,8 @@ FROM python:3.11.6-slim
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
+ENV PGSSLCERT /tmp/postgresql.crt
+
 RUN apt-get clean \
     && apt-get -y update
 
