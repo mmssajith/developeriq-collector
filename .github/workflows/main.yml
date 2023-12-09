@@ -44,17 +44,6 @@ jobs:
       run: aws eks update-kubeconfig --name developeriq_eks --region ap-southeast-1
 
     - name: Deploy
-      uses: cancue/eks-action@v0.0.2
-      env:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws_region: ap-southeast-1
-        cluster_name: developeriq_eks
-      with:
-        args: |
-          kubectl set image deployment dev_deployment -n dev_namespace
-          dev_deployment=developeriq_be:latest &&
-          kubectl rollout status deployment/dev_deployment -n dev_namespace
-
-      
+      run: |
+        kubectl apply -f kubernetes/deployment.yaml
   
