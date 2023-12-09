@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     name: Build Image
     runs-on: ubuntu-latest
 
@@ -37,19 +37,17 @@ jobs:
         ECR_REPOSITORY: developeriq_be
         IMAGE_TAG: 1.0
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY
+    
+    - name: Update  Kube Config
+      run: aws eks update-kubeconfig --name developeriq_eks --region ap-southeast-1
 
-    # - name: deploy to cluster
-    #   uses: kodermax/kubectl-aws-eks@main
-    #   env:
-    #     KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-    #   with:
-    #     args: set image deployment/$ECR_REPOSITORY $ECR_REPOSITORY=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        
-    # - name: verify deployment
-    #   uses: kodermax/kubectl-aws-eks@main
-    #   env:
-    #     KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-    #   with:
-    #     args: rollout status deployment/my-app
+    - name: Deploy Image on EKS
+      run: |
+        kubectl apply kubernetes/auth.yaml
+        kubectl apply kubernetes/deployment.yaml
+        kubectl apply kubernetes/service.yaml
+        kubectl apply kubernetes/ingress.yaml
+      
+    

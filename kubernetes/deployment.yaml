@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: developeriq-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: developeriq
+  template:
+    metadata:
+      labels:
+        app: developeriq
+    spec:
+      containers:
+      - name: developeriq
+        image: 337689099048.dkr.ecr.ap-southeast-1.amazonaws.com/developeriq_be:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+
