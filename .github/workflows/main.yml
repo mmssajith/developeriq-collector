@@ -45,7 +45,7 @@ jobs:
 
     - name: Deploy Image on EKS
       run: |
-        kubectl apply kubernetes/auth.yaml
+        # kubectl apply kubernetes/auth.yaml
         kubectl apply kubernetes/deployment.yaml
         kubectl apply kubernetes/service.yaml
         kubectl apply kubernetes/ingress.yaml
