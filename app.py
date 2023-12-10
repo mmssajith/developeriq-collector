@@ -40,7 +40,7 @@ push = Table(
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('developer_id', ForeignKey('developer.id'), nullable=False),
     Column('repo', String, nullable=False),
-    Column('commits', ForeignKey('commits.id'), nullable=False),
+    Column('commits_count', Integer, nullable=False),
 )
 
 commits = Table(
@@ -48,6 +48,7 @@ commits = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('developer_id', ForeignKey('developer.id'), nullable=False),
+    Column('push_id', ForeignKey('push.id'), nullable=False),
     Column('repo', String, nullable=False),
     Column('files_added', Integer, nullable=False),
     Column('files_removed', Integer, nullable=False),
@@ -105,7 +106,7 @@ def health_check():
 
 def get_or_create_developer_id(conn, developer_name):
     developer_id = conn.execute(
-        text("SELECT id FROM developer WHERE name = :name"), name=developer_name
+        text("SELECT id FROM developer WHERE username = :name"), name=developer_name
     ).scalar()
 
     if not developer_id:
@@ -130,25 +131,26 @@ def insert_pull_request(conn, developer_id, repo, pr_date):
 
 def insert_push_data(conn, data, developer_id, repo):
     commits_data = data["commits"]
+    commits_count = len(commits_data)
+    push_id = conn.execute(push.insert().values(
+        developer_id=developer_id,
+        repo=repo,
+        commits_count=commits_count
+    )).inserted_primary_key[0]
     for commit_data in commits_data:
         developer_name = commit_data["author"]["name"]
         developer_id = get_or_create_developer_id(conn, developer_name)
 
-        commit_result = conn.execute(commits.insert().values(
+        conn.execute(commits.insert().values(
             developer_id=developer_id,
             repo=repo,
+            push_id=push_id,
             files_added=len(commit_data["added"]),
             files_removed=len(commit_data["removed"]),
             files_modified=len(commit_data["modified"])
         ))
 
-        commit_id = commit_result.inserted_primary_key[0]
 
-        conn.execute(push.insert().values(
-            developer_id=developer_id,
-            repo=repo,
-            commit_id=commit_id
-        ))
 
 # Helper function to insert GitHub event data
 
