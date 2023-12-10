@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: developeriq-service
   labels:
-    app: developeriq-app
+    app: developeriq
 spec:
   selector:
-    app: developeriq-app
+    app: developeriq
   ports:
   - protocol: TCP
     port: 80
