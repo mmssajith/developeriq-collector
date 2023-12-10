@@ -1,21 +1,16 @@
 from flask import Flask, request, jsonify
-from sqlalchemy import Table, Column, MetaData, Integer, create_engine, JSON, String, insert, ForeignKey, DateTime, select
+from sqlalchemy import create_engine, Table, Column, MetaData, Integer, String, JSON, insert, ForeignKey, text
 import os
-import logging
 
 app = Flask(__name__)
 
-CONNECTION_STRING = "developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com"
-DB_USER = "postgres"
-DB_PASSWORD = "dEbpMuh1YPXZu21SxR4t"
-
 db_uri = os.environ.get(
-    "DB_URI", "postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require")
+    "DB_URI", f"postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require"
+)
 engine = create_engine(db_uri, echo=True)
-conn = engine.connect()
-
 metadata = MetaData()
 
+# Define Tables
 github_event = Table(
     "github_events",
     metadata,
@@ -28,25 +23,6 @@ developer = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('username', String, unique=True),
-    Column('email', String, unique=True)
-)
-
-commits = Table(
-    'commits',
-    metadata,
-    Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('developer_id', ForeignKey('developer.id'), nullable=False),
-    Column('commit_date', String, nullable=False),
-    Column('commit_message', String, nullable=False)
-)
-
-issues = Table(
-    'issues',
-    metadata,
-    Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('developer_id', ForeignKey('developer.id'), nullable=False),
-    Column('issue_type', String, nullable=False),
-    Column('issue_date', DateTime, nullable=False)
 )
 
 pull_requests = Table(
@@ -54,46 +30,133 @@ pull_requests = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('developer_id', ForeignKey('developer.id'), nullable=False),
-    Column('pr_type', String, nullable=False),
+    Column('repo', String, nullable=False),
     Column('pr_date', String, nullable=False),
-    Column('pr_comments_count', Integer, nullable=False, default=0),
-    Column('pr_commits_count', Integer, nullable=False, default=0),
+)
+
+push = Table(
+    'push',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('developer_id', ForeignKey('developer.id'), nullable=False),
+    Column('repo', String, nullable=False),
+    Column('commits', ForeignKey('commits.id'), nullable=False),
+)
+
+commits = Table(
+    'commits',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('developer_id', ForeignKey('developer.id'), nullable=False),
+    Column('repo', String, nullable=False),
+    Column('files_added', Integer, nullable=False),
+    Column('files_removed', Integer, nullable=False),
+    Column('files_modified', Integer, nullable=False)
 )
 
 metadata.create_all(engine)
 
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    db_uri = os.environ.get(
-        "DB_URI", "postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require")
-    engine = create_engine(db_uri, echo=True)
-    conn = engine.connect()
+@app.route("/pull-request", methods=['POST'])
+def handle_pull_request():
     data = request.get_json()
+    pr_date = data["pull_request"]["created_at"]
+    repo = data["pull_request"]["head"]["repo"]["full_name"]
+    creator_name = data["pull_request"]["user"]["login"]
 
-    query = insert(github_event).values(payload=data)
-    conn.execute(query)
-    conn.commit()
+    with engine.connect() as conn:
+        developer_id = get_or_create_developer_id(conn, creator_name)
+        insert_pull_request(conn, developer_id, repo, pr_date)
 
     return jsonify({"status": "success"})
 
 
-@app.route("/commit-analyse/<id>", methods=["GET"])
-def commit_analyse(id):
-    db_uri = os.environ.get(
-        "DB_URI", "postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require")
-    engine = create_engine(db_uri, echo=True)
-    conn = engine.connect()
-    query = select(github_event.c["payload"]).where(
-        github_event.c.id == id)
-    row = conn.execute(query).fetchone()
-    logging.info("==============")
-    logging.info(row)
-    logging.info(type(row))
-    logging.info("==============")
-    return jsonify({"result": row.payload})
+@app.route("/push", methods=['POST'])
+def handle_push():
+    data = request.get_json()
+    pusher_name = data["pusher"]["name"]
+    repo = data["repository"]["full_name"]
+
+    with engine.connect() as conn:
+        developer_id = get_or_create_developer_id(conn, pusher_name)
+        insert_push_data(conn, data, developer_id, repo)
+
+    return jsonify({"status": "success"})
+
+
+
+@app.route("/webhook", methods=["POST"])
+def handle_webhook():
+    data = request.get_json()
+
+    with engine.connect() as conn:
+        insert_github_event(conn, data)
+
+    return jsonify({"status": "success"})
+
 
 
 @app.route("/", methods=["GET"])
 def health_check():
     return jsonify({"status": "service is healthy"})
+
+# Helper function to get or create developer ID
+
+
+def get_or_create_developer_id(conn, developer_name):
+    developer_id = conn.execute(
+        text("SELECT id FROM developer WHERE name = :name"), name=developer_name
+    ).scalar()
+
+    if not developer_id:
+        result = conn.execute(developer.insert().values(name=developer_name))
+        developer_id = result.inserted_primary_key[0]
+
+    return developer_id
+
+# Helper function to insert pull request data
+
+
+def insert_pull_request(conn, developer_id, repo, pr_date):
+    ins = insert(pull_requests).values(
+        developer_id=developer_id,
+        repo=repo,
+        pr_date=pr_date
+    )
+    conn.execute(ins)
+
+# Helper function to insert push data
+
+
+def insert_push_data(conn, data, developer_id, repo):
+    commits_data = data["commits"]
+    for commit_data in commits_data:
+        developer_name = commit_data["author"]["name"]
+        developer_id = get_or_create_developer_id(conn, developer_name)
+
+        commit_result = conn.execute(commits.insert().values(
+            developer_id=developer_id,
+            repo=repo,
+            files_added=len(commit_data["added"]),
+            files_removed=len(commit_data["removed"]),
+            files_modified=len(commit_data["modified"])
+        ))
+
+        commit_id = commit_result.inserted_primary_key[0]
+
+        conn.execute(push.insert().values(
+            developer_id=developer_id,
+            repo=repo,
+            commit_id=commit_id
+        ))
+
+# Helper function to insert GitHub event data
+
+
+def insert_github_event(conn, data):
+    query = insert(github_event).values(payload=data)
+    conn.execute(query)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
