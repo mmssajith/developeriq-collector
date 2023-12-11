@@ -9,6 +9,6 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: shared-pvc
+  storageClassName: shared-storage-cls
   hostPath:
     path: /path/on/host
