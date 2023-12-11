@@ -49,4 +49,5 @@ jobs:
         kubectl apply -f kubernetes/ingress.yaml
         kubectl apply -f kubernetes/persistStorage.yaml
         kubectl apply -f kubernetes/prometheus.yaml
+        kubectl apply -f kubernetes/grafana.yaml
   
