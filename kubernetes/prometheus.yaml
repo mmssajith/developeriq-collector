@@ -27,18 +27,18 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 9090
-        volumeMounts:
-        - name: prometheus-config
-          mountPath: /etc/prometheus
-        - name: shared-storage
-          mountPath: /prometheus
-      volumes:
-      - name: prometheus-config
-        configMap:
-          name: prometheus-config
-      - name: shared-storage
-        persistentVolumeClaim:
-          claimName: shared-pvc
+      #   volumeMounts:
+      #   - name: prometheus-config
+      #     mountPath: /etc/prometheus
+      #   - name: shared-storage
+      #     mountPath: /prometheus
+      # volumes:
+      # - name: prometheus-config
+      #   configMap:
+      #     name: prometheus-config
+      # - name: shared-storage
+      #   persistentVolumeClaim:
+      #     claimName: shared-pvc
 
 ---
 
@@ -79,19 +79,19 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
-        volumeMounts:
-        - name: grafana-config
-          mountPath: /etc/grafana
-          readOnly: true
-        - name: shared-storage
-          mountPath: /var/lib/grafana
-      volumes:
-      - name: grafana-config
-        configMap:
-          name: grafana-config
-      - name: shared-storage
-        persistentVolumeClaim:
-          claimName: shared-pvc
+        # volumeMounts:
+        # - name: grafana-config
+        #   mountPath: /etc/grafana
+        #   readOnly: true
+        # - name: shared-storage
+        #   mountPath: /var/lib/grafana
+      # volumes:
+      # - name: grafana-config
+      #   configMap:
+      #     name: grafana-config
+      # - name: shared-storage
+      #   persistentVolumeClaim:
+      #     claimName: shared-pvc
 
 ---
 
@@ -113,17 +113,17 @@ spec:
 ---
 
 # Persistent Volume Claim
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: shared-pvc
-  namespace: monitoring
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: shared-pvc
+#   namespace: monitoring
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 5Gi 
 
 ---
 
