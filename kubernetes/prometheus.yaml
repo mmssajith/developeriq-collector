@@ -121,7 +121,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs
+  storageClassName: shared-storage-cls
     resources:
     requests:
       storage: 5Gi 
