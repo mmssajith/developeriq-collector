@@ -13,12 +13,11 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v2
-
-    - name: Install Kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.28.4'
-      id: install
+    
+    - name: Code Validation
+      run: |
+        flake8 app.py
+        flake8 test_app.py
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -39,15 +38,3 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY
-    
-    - name: Update  Kube Config
-      run: aws eks update-kubeconfig --name developeriq_eks --region ap-southeast-1
-
-    - name: Deploy
-      run: |
-        kubectl apply -f kubernetes/deployment.yaml
-        kubectl apply -f kubernetes/ingress.yaml
-        kubectl apply -f kubernetes/persistStorage.yaml
-        kubectl apply -f kubernetes/prometheus.yaml
-        kubectl apply -f kubernetes/grafana.yaml
-  
