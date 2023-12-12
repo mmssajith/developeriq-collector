@@ -76,13 +76,12 @@ metadata.create_all(engine)
 @app.route("/pull-request", methods=['POST'])
 def handle_pull_request():
     data = request.get_json()
-    pr_date = data["pull_request"]["created_at"]
     repo = data["pull_request"]["head"]["repo"]["full_name"]
     creator_name = data["pull_request"]["user"]["login"]
 
     with engine.connect() as conn:
         developer_id = get_or_create_developer_id(conn, creator_name)
-        insert_pull_request(conn, developer_id, repo, pr_date)
+        insert_pull_request(conn, developer_id, repo)
 
     return jsonify({"status": "success"})
 
@@ -135,7 +134,6 @@ def insert_pull_request(conn, developer_id, repo, pr_date):
     ins = insert(pull_requests).values(
         developer_id=developer_id,
         repo=repo,
-        pr_date=pr_date
     )
     conn.execute(ins)
 
