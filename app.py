@@ -79,9 +79,8 @@ def handle_pull_request():
     repo = data["pull_request"]["head"]["repo"]["full_name"]
     creator_name = data["pull_request"]["user"]["login"]
 
-    with engine.connect() as conn:
-        developer_id = get_or_create_developer_id(conn, creator_name)
-        insert_pull_request(conn, developer_id, repo)
+    developer_id = get_or_create_developer_id(creator_name)
+    insert_pull_request(developer_id, repo)
 
     return jsonify({"status": "success"})
 
@@ -92,20 +91,15 @@ def handle_push():
     pusher_name = data["pusher"]["name"]
     repo = data["repository"]["full_name"]
 
-    with engine.connect() as conn:
-        developer_id = get_or_create_developer_id(conn, pusher_name)
-        insert_push_data(conn, data, developer_id, repo)
-
+    developer_id = get_or_create_developer_id(pusher_name)
+    insert_push_data(data, developer_id, repo)
     return jsonify({"status": "success"})
 
 
 @app.route("/webhook", methods=["POST"])
 def handle_webhook():
     data = request.get_json()
-
-    with engine.connect() as conn:
-        insert_github_event(conn, data)
-
+    insert_github_event(data)
     return jsonify({"status": "success"})
 
 
@@ -116,13 +110,16 @@ def health_check():
 # Helper function to get or create developer ID
 
 
-def get_or_create_developer_id(conn, developer_name):
-    developer_id = conn.execute(
-        text("SELECT id FROM developer WHERE username = :name"), name=developer_name
-    ).scalar()
+def get_or_create_developer_id(developer_name):
+    with engine.connect() as conn:
+        developer_id = conn.execute(
+            text(f"SELECT id FROM developer WHERE username = '{developer_name}'")
+        ).scalar()
 
     if not developer_id:
-        result = conn.execute(developer.insert().values(name=developer_name))
+        with engine.connect() as conn:
+            result = conn.execute(insert(developer).values(username=developer_name))
+            conn.commit()
         developer_id = result.inserted_primary_key[0]
 
     return developer_id
@@ -130,43 +127,52 @@ def get_or_create_developer_id(conn, developer_name):
 # Helper function to insert pull request data
 
 
-def insert_pull_request(conn, developer_id, repo, pr_date):
-    ins = insert(pull_requests).values(
-        developer_id=developer_id,
-        repo=repo,
-    )
-    conn.execute(ins)
+def insert_pull_request(developer_id, repo):
+    with engine.connect() as conn:
+        ins = insert(pull_requests).values(
+            developer_id=developer_id,
+            repo=repo,
+        )
+        conn.execute(ins)
+        conn.commit()
 
 # Helper function to insert push data
 
 
-def insert_push_data(conn, data, developer_id, repo):
+def insert_push_data(data, developer_id, repo):
     commits_data = data["commits"]
     commits_count = len(commits_data)
-    push_id = conn.execute(push.insert().values(
-        developer_id=developer_id,
-        repo=repo,
-        commits_count=commits_count
-    )).inserted_primary_key[0]
-    for commit_data in commits_data:
-        developer_name = commit_data["author"]["name"]
-        developer_id = get_or_create_developer_id(conn, developer_name)
-
-        conn.execute(commits.insert().values(
+    with engine.connect() as conn:
+        push_id = conn.execute(push.insert().values(
             developer_id=developer_id,
             repo=repo,
-            push_id=push_id,
-            files_added=len(commit_data["added"]),
-            files_removed=len(commit_data["removed"]),
-            files_modified=len(commit_data["modified"])
-        ))
+            commits_count=commits_count
+        )).inserted_primary_key[0]
+        conn.commit()
+
+    for commit_data in commits_data:
+        developer_name = commit_data["author"]["username"]
+        developer_id = get_or_create_developer_id(developer_name)
+
+        with engine.connect() as conn:
+            conn.execute(commits.insert().values(
+                developer_id=developer_id,
+                repo=repo,
+                push_id=push_id,
+                files_added=len(commit_data["added"]),
+                files_removed=len(commit_data["removed"]),
+                files_modified=len(commit_data["modified"])
+            ))
+            conn.commit()
 
 # Helper function to insert GitHub event data
 
 
-def insert_github_event(conn, data):
-    query = insert(github_event).values(payload=data)
-    conn.execute(query)
+def insert_github_event(data):
+    with engine.connect() as conn:
+        query = insert(github_event).values(payload=data)
+        conn.execute(query)
+        conn.commit()
 
 
 if __name__ == '__main__':
