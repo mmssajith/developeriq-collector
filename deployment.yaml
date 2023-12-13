@@ -21,11 +21,9 @@ spec:
         - containerPort: 80
         resources:
           limits:
-            cpu: 1
-            memory: 2Gi
-          requests:
             cpu: 500m
-            memory: 1Gi
+          requests:
+            cpu: 200m
         env:
         - name: DB_URI
           valueFrom:
