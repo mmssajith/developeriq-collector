@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: developeriq-secrets
+  namespace: developeriq
+type: Opaque
+stringData:
+  DB_URI: "postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: developeriq-deployment
+  namespace: developeriq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: developeriq
+  template:
+    metadata:
+      labels:
+        app: developeriq
+    spec:
+      containers:
+      - name: developeriq
+        image: 337689099048.dkr.ecr.ap-southeast-1.amazonaws.com/developeriq_be:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        env:
+        - name: DB_URI
+          valueFrom:
+            secretKeyRef:
+              name: developeriq-secrets
+              key: DB_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: developeriq-service
+  namespace: developeriq
+  labels:
+    app: developeriq
+spec:
+  selector:
+    app: developeriq
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: developeriq-ingress
+  namespace: developeriq
+spec:
+  rules:
+  - host: ""
+    http:
+      paths:
+      - path: /developeriq
+        pathType: Prefix
+        backend:
+          service:
+            name: developeriq-service
+            port:
+              number: 80
+      - path: /analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 80
