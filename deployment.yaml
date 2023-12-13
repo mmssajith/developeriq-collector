@@ -1,4 +1,4 @@
-apiVersion: autoscaling/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: developeriq-deployment
@@ -19,6 +19,13 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
         env:
         - name: DB_URI
           valueFrom:
