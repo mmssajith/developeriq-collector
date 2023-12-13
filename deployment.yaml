@@ -1,12 +1,3 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: developeriq-secrets
-  namespace: developeriq
-type: Opaque
-stringData:
-  DB_URI: "postgresql://postgres:dEbpMuh1YPXZu21SxR4t@developeriq.cgfn0rdytwyv.ap-southeast-1.rds.amazonaws.com:5432/developeriq?sslmode=require"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,28 +41,3 @@ spec:
     port: 80
     targetPort: 80
   type: LoadBalancer
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: developeriq-ingress
-  namespace: developeriq
-spec:
-  rules:
-  - host: ""
-    http:
-      paths:
-      - path: /developeriq
-        pathType: Prefix
-        backend:
-          service:
-            name: developeriq-service
-            port:
-              number: 80
-      - path: /analytics
-        pathType: Prefix
-        backend:
-          service:
-            name: analytics-service
-            port:
-              number: 80
