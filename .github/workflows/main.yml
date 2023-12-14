@@ -24,6 +24,7 @@ jobs:
     
     - name: Run Code Unittest
       run: |
+        export DB_URI=${{ secrets.DB_URI }}
         python -m unittest test_app.py
 
     - name: Install Kubectl
