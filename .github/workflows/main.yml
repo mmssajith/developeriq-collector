@@ -14,10 +14,17 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
     
+    - name: Install Dependancies
+      run: |
+        pip install -r requirements.txt
+
     - name: Code Validation
       run: |
-        pip install flake8
         flake8 app.py
+    
+    - name: Run Code Unittest
+      run: |
+        python -m unittest test_app.py
 
     - name: Install Kubectl
       uses: azure/setup-kubectl@v3
