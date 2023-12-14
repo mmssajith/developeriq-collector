@@ -2,7 +2,7 @@ name: Periodic Full System Test
 
 on:
   schedule:
-    - cron: '0 * * * *'  
+    - cron: '20 * * * *'  
 
 jobs:
   test:
