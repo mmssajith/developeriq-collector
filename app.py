@@ -38,10 +38,23 @@ pull_requests = Table(
     'pull_requests',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('number', Integer, nullable=False, unique=True),
     Column('developer_id', ForeignKey('developer.id'), nullable=False),
     Column('repo', String, nullable=False),
     Column('created_at', DateTime,
            default=datetime.now()),
+)
+
+
+pr_process = Table(
+    'pr_process',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('pr_number', ForeignKey('pull_requests.number'), nullable=False),
+    Column('repo', String, nullable=False),
+    Column('created_at', DateTime),
+    Column('closed_at', DateTime),
+    Column('merged_at', DateTime),
 )
 
 push = Table(
@@ -78,9 +91,19 @@ def handle_pull_request():
     data = request.get_json()
     repo = data["pull_request"]["head"]["repo"]["full_name"]
     creator_name = data["pull_request"]["user"]["login"]
+    pr_number = data["number"]
+
+    action = data["action"]
 
     developer_id = get_or_create_developer_id(creator_name)
-    insert_pull_request(developer_id, repo)
+
+    if action == "opened":
+        insert_pull_request(developer_id, repo, pr_number)
+    if action == "closed":
+        created_at = data["created_at"]
+        closed_at = data["closed_at"]
+        merged_at = data["merged_at"]
+        insert_pr_process(pr_number, repo, created_at, closed_at, merged_at)
 
     return jsonify({"status": "success"})
 
@@ -127,11 +150,12 @@ def get_or_create_developer_id(developer_name):
 # Helper function to insert pull request data
 
 
-def insert_pull_request(developer_id, repo):
+def insert_pull_request(developer_id, repo, pr_number):
     with engine.connect() as conn:
         ins = insert(pull_requests).values(
             developer_id=developer_id,
             repo=repo,
+            pr_number=pr_number
         )
         conn.execute(ins)
         conn.commit()
@@ -164,6 +188,18 @@ def insert_push_data(data, developer_id, repo):
                 files_modified=len(commit_data["modified"])
             ))
             conn.commit()
+
+
+def insert_pr_process(pr_number, repo, created_at, closed_at, merged_at):
+    with engine.connect() as conn:
+        conn.execute(pr_process.insert().values(
+            pr_number=pr_number,
+            repo=repo,
+            created_at=created_at,
+            closed_at=closed_at,
+            merged_at=merged_at
+        ))
+        conn.commit()
 
 # Helper function to insert GitHub event data
 
