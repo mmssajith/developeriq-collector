@@ -6,11 +6,11 @@ K8S_NAMESPACE ?= developeriq
 
 .PHONY: deploy
 deploy:
-	kubectl apply -f deployment.yaml --namespace=$(K8S_NAMESPACE)
+	kubectl apply -f deployment.yaml
 
 .PHONY: delete
 delete:
-	kubectl delete -f deployment.yaml --namespace=$(K8S_NAMESPACE)
+	kubectl delete -f deployment.yaml
 
 .PHONY: build-and-push
 build-and-push:
