@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: developeriq-deployment
-  namespace: developeriq
+  namespace: $(K8S_NAMESPACE)
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: developeriq
-        image: 337689099048.dkr.ecr.ap-southeast-1.amazonaws.com/developeriq_be:latest
+        image: $(ECR_REGISTRY)/$(ECR_REPOSITORY):$(IMAGE_TAG)
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -35,7 +35,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: developeriq-service
-  namespace: developeriq
+  namespace: $(K8S_NAMESPACE)
   labels:
     app: developeriq
 spec:
