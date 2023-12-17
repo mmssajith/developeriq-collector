@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: developeriq-deployment
-  namespace: $(K8S_NAMESPACE)
+  namespace: {{K8S_NAMESPACE}}
 spec:
   replicas: 1
   selector:
@@ -15,15 +15,15 @@ spec:
     spec:
       containers:
       - name: developeriq
-        image: $(ECR_REGISTRY)/$(ECR_REPOSITORY):$(IMAGE_TAG)
+        image: {{ECR_REGISTRY}}/{{ECR_REPOSITORY}}:{{IMAGE_TAG}}
         imagePullPolicy: Always
         ports:
         - containerPort: 80
         resources:
           limits:
-            cpu: 500m
+            cpu: 300m
           requests:
-            cpu: 200m
+            cpu: 150m
         env:
         - name: DB_URI
           valueFrom:
@@ -35,7 +35,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: developeriq-service
-  namespace: $(K8S_NAMESPACE)
+  namespace: {{K8S_NAMESPACE}}
   labels:
     app: developeriq
 spec:

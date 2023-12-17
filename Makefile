@@ -6,11 +6,11 @@ K8S_NAMESPACE ?= developeriq
 
 .PHONY: deploy
 deploy:
-	kubectl apply -f deployment.yaml
+	sed 's|{{IMAGE_TAG}}|$(IMAGE_TAG)|;s|{{ECR_REGISTRY}}|$(ECR_REGISTRY)|;s|{{ECR_REPOSITORY}}|$(ECR_REPOSITORY)|;s|{{K8S_NAMESPACE}}|$(K8S_NAMESPACE)|' deployment.yaml | kubectl apply -f -
 
 .PHONY: delete
 delete:
-	kubectl delete -f deployment.yaml
+	sed 's|{{IMAGE_TAG}}|$(IMAGE_TAG)|;s|{{ECR_REGISTRY}}|$(ECR_REGISTRY)|;s|{{ECR_REPOSITORY}}|$(ECR_REPOSITORY)|;s|{{K8S_NAMESPACE}}|$(K8S_NAMESPACE)|' deployment.yaml | kubectl delete -f -
 
 .PHONY: build-and-push
 build-and-push:
