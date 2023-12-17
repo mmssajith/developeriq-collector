@@ -1,5 +1,5 @@
 # Makefile
-IMAGE_TAG ?= 3.0.0
+IMAGE_TAG ?= 2.0.0
 ECR_REGISTRY ?= 337689099048.dkr.ecr.ap-southeast-1.amazonaws.com
 ECR_REPOSITORY ?= developeriq_be
 K8S_NAMESPACE ?= developeriq
